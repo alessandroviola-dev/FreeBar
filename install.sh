@@ -40,9 +40,10 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 mkdir -p "$NEW/Contents/MacOS" "$NEW/Contents/Resources"
 cp "$ROOT/Resources/Info.plist" "$NEW/Contents/Info.plist"
+cp "$ROOT/Resources/PrivacyInfo.xcprivacy" "$NEW/Contents/Resources/PrivacyInfo.xcprivacy"
 cp "$BIN/FreeBar" "$NEW/Contents/MacOS/FreeBar"
 chmod 755 "$NEW/Contents/MacOS/FreeBar"
-plutil -lint "$NEW/Contents/Info.plist" >/dev/null
+plutil -lint "$NEW/Contents/Info.plist" "$NEW/Contents/Resources/PrivacyInfo.xcprivacy" >/dev/null
 # Stable local designated requirement keeps this private app's identity across builds.
 # This is ad-hoc signing, not Developer ID signing or notarization.
 codesign --force --sign - --identifier "$BUNDLE_ID" \
@@ -57,5 +58,8 @@ mv -- "$NEW" "$APP"
 /usr/bin/open "$APP"
 sleep 2
 [[ -n $(installed_pids) ]] || fail 'The installed application did not remain running.'
+plutil -lint "$APP/Contents/Resources/PrivacyInfo.xcprivacy" >/dev/null
+cmp -s "$ROOT/Resources/PrivacyInfo.xcprivacy" "$APP/Contents/Resources/PrivacyInfo.xcprivacy" \
+    || fail 'Installed privacy manifest differs from source.'
 COMMITTED=1
 printf 'FreeBar installed and running: %s\n' "$APP"

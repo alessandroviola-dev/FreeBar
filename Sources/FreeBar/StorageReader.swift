@@ -1,5 +1,7 @@
 import Foundation
 import DiskArbitration
+import IOKit
+import IOKit.storage
 import Darwin
 
 // Confined to StorageMonitor's serial queue. No subprocesses or user-file access.
@@ -56,6 +58,30 @@ final class StorageReader: @unchecked Sendable {
         return nil
     }
 
+    static func hasPhysicalBacking(_ disk: DADisk) -> Bool {
+        // Only a real USB/PCI hardware ancestor is positive fallback evidence. An
+        // ejectable IOMedia or an IOBlockStorageDevice alone can also be a disk image.
+        // Walk past APFS layers, reject virtual backing, and release every IOKit handle.
+        var entry = DADiskCopyIOMedia(disk)
+        var hardware = false
+        while entry != IO_OBJECT_NULL {
+            let properties = IORegistryEntryCreateCFProperty(
+                entry, kIOPropertyProtocolCharacteristicsKey as CFString, kCFAllocatorDefault, 0
+            )?.takeRetainedValue() as? [String: Any]
+            if properties?[kIOPropertyPhysicalInterconnectTypeKey] as? String == kIOPropertyPhysicalInterconnectTypeVirtual {
+                IOObjectRelease(entry)
+                return false
+            }
+            hardware = hardware || IOObjectConformsTo(entry, "IOUSBHostDevice") != 0
+                || IOObjectConformsTo(entry, "IOPCIDevice") != 0
+            var parent: io_registry_entry_t = IO_OBJECT_NULL
+            let status = IORegistryEntryGetParentEntry(entry, kIOServicePlane, &parent)
+            IOObjectRelease(entry)
+            entry = status == KERN_SUCCESS ? parent : IO_OBJECT_NULL
+        }
+        return hardware
+    }
+
     private func discover() -> [MountedVolume] {
         guard let session else { return [] }
         // MNT_NOWAIT reads the kernel's cached mount table, without probing network
@@ -86,6 +112,9 @@ final class StorageReader: @unchecked Sendable {
                 isEjectable: description[kDADiskDescriptionMediaEjectableKey as String] as? Bool == true,
                 deviceProtocol: description[kDADiskDescriptionDeviceProtocolKey as String] as? String
             )
+            if !metadata.isRelevantExternal, metadata.deviceProtocol != kIOPropertyPhysicalInterconnectTypeVirtual {
+                metadata.hasPhysicalBacking = Self.hasPhysicalBacking(disk)
+            }
             guard metadata.isRelevantExternal else { continue }
             guard let values = try? url.resourceValues(forKeys: [
                 .volumeNameKey, .volumeUUIDStringKey, .volumeIsBrowsableKey, .isHiddenKey, .isVolumeKey

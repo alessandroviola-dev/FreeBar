@@ -72,19 +72,19 @@ See [TESTING.md](TESTING.md) for executed checks and remaining manual tests.
 - **Mac** appears once, using the writable APFS Data filesystem, with `/` as fallback. System, VM, Preboot, Recovery, and other internal mounts are not listed separately.
 - Uses Foundation's `volumeAvailableCapacityForImportantUsage`: space macOS considers available for important user data, including reclaimable space. If unsupported, falls back to `volumeAvailableCapacity`. It is not total capacity or opportunistic capacity and may exceed `df`'s immediately free space.
 - Uses decimal units: `M` = 10⁶ bytes, `G` = 10⁹, `T` = 10¹². Whole MB/GB; at most two TB decimals with trailing zeroes removed. `?` means unavailable, not zero.
-- Reads the cached native mount table without probing network shares. Disk Arbitration physical-transport metadata and Foundation visibility/volume metadata filter external SSDs, HDDs, USB sticks, and SD cards. Virtual transports (including APFS disk images), non-local filesystems, and hidden/non-browsable helper mounts are excluded, without blacklisting user volume names.
+- Reads the cached native mount table without probing network shares. Disk Arbitration physical-transport metadata and Foundation visibility/volume metadata filter external SSDs, HDDs, USB sticks, and SD cards. Known transports are accepted; an unfamiliar transport needs a native USB/PCI hardware ancestor. Virtual transports (including APFS disk images), non-local filesystems, and hidden/non-browsable helper mounts are excluded, without blacklisting user volume names.
 - External volumes are sorted by name, with stable UUID tie-breaking. Names longer than 12 grapheme clusters are truncated safely. Separately mounted user volumes on the same external disk remain separate entries and may share APFS free space.
 
 Disk inspection runs on one utility queue, off the UI thread. Mount identity is checked before and after external capacity reads; disappearing/unreadable volumes are skipped. No App Sandbox or additional entitlements: this manually installed app needs only system volume metadata, and sandboxing would add unnecessary access/packaging complexity.
 
 ## Privacy
 
-Fully local. No telemetry, networking, analytics, update checks, accounts, or file scanning. Only filesystem/volume metadata is queried; no user filenames or file contents are collected. No third-party dependencies or runtime shell polling.
+Fully local. No telemetry, networking, analytics, update checks, accounts, or file scanning. Only filesystem/volume metadata is queried; no user filenames or file contents are collected. No third-party dependencies or runtime shell polling. `PrivacyInfo.xcprivacy` declares only Apple required-reason APIs for displaying disk capacity and monotonic uptime used for internal refresh timing; it declares no collected data or tracking.
 
 ## Limitations
 
 - iPhone/iPad storage is not supported in v1.
-- Only normally mounted local physical storage volumes are considered. Unknown transports or missing identifying metadata are deliberately omitted; no network, DMG, or virtual-disk support.
+- Only normally mounted local physical storage volumes are considered. Unknown transports are shown only when native USB/PCI ancestry proves physical backing; missing identifying metadata is deliberately omitted. There is no network, DMG, or virtual-disk support.
 - macOS controls menu bar space: many connected volumes can exceed the available width.
 - Launch-at-login approval and behavior across an actual logout/reboot still depend on macOS policy; see the test report.
 

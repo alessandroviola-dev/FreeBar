@@ -64,16 +64,17 @@ struct VolumeMetadata {
     var isRemovable: Bool
     var isEjectable: Bool
     var deviceProtocol: String?
+    var hasPhysicalBacking = false
 
     var isRelevantExternal: Bool {
         guard isLocal, isBrowsable, !isHidden,
               path != "/", path != "/System", !path.hasPrefix("/System/"),
               isInternal == false || isRemovable || isEjectable,
-              let deviceProtocol else { return false }
-        // Positive physical-transport evidence rejects disk images (Virtual Interface),
-        // network/virtual filesystems and ambiguous devices, including APFS-on-DMG.
+              let deviceProtocol, deviceProtocol != "Virtual Interface" else { return false }
+        // Unknown transports require hardware ancestry, not merely ejectability (DMGs
+        // are ejectable too). Known transports retain the existing classification.
         return ["USB", "FireWire", "Thunderbolt", "PCI-Express", "PCI", "SATA",
                 "ATA", "ATAPI", "SCSI", "Secure Digital", "Apple Fabric"]
-            .contains(deviceProtocol)
+            .contains(deviceProtocol) || hasPhysicalBacking
     }
 }

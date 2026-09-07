@@ -66,6 +66,50 @@ final class FreeBarTests: XCTestCase {
         XCTAssertTrue(value.isRelevantExternal, "Built-in SD readers can report internal transport")
     }
 
+    func testUnknownTransportRequiresPhysicalBacking() {
+        var volume = VolumeMetadata(path: "/Volumes/Future", isLocal: true, isBrowsable: true,
+                                    isHidden: false, isInternal: false, isRemovable: true,
+                                    isEjectable: true, deviceProtocol: "Future Transport")
+        XCTAssertFalse(volume.isRelevantExternal, "External/ejectable/removable alone is not proof")
+        volume.hasPhysicalBacking = true
+        XCTAssertTrue(volume.isRelevantExternal)
+        // Even convincing hardware evidence must never override these exclusions.
+        var rejected = volume; rejected.deviceProtocol = "Virtual Interface"
+        XCTAssertFalse(rejected.isRelevantExternal)
+        rejected = volume; rejected.isLocal = false
+        XCTAssertFalse(rejected.isRelevantExternal)
+        rejected = volume; rejected.isInternal = true; rejected.isRemovable = false; rejected.isEjectable = false
+        XCTAssertFalse(rejected.isRelevantExternal)
+        rejected = volume; rejected.deviceProtocol = nil
+        XCTAssertFalse(rejected.isRelevantExternal)
+        rejected = volume; rejected.isInternal = nil; rejected.isRemovable = false; rejected.isEjectable = false
+        XCTAssertFalse(rejected.isRelevantExternal)
+    }
+
+    func testPrivacyManifestSchemaAndReasons() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let data = try Data(contentsOf: root.appendingPathComponent("Resources/PrivacyInfo.xcprivacy"))
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        let plist = try XCTUnwrap(PropertyListSerialization.propertyList(from: data, format: &format) as? [String: Any])
+        XCTAssertEqual(format, .xml)
+        XCTAssertEqual(plist["NSPrivacyTracking"] as? Bool, false)
+        XCTAssertEqual(try XCTUnwrap(plist["NSPrivacyTrackingDomains"] as? [String]), [])
+        XCTAssertTrue(try XCTUnwrap(plist["NSPrivacyCollectedDataTypes"] as? [[String: Any]]).isEmpty)
+        let declarations = try XCTUnwrap(plist["NSPrivacyAccessedAPITypes"] as? [[String: Any]])
+        // Apple NSPrivacyAccessedAPITypeReasons documentation: display disk space;
+        // measure elapsed time between in-app events. No write-space or tracking reason.
+        let expected = ["NSPrivacyAccessedAPICategoryDiskSpace": ["85F4.1"],
+                        "NSPrivacyAccessedAPICategorySystemBootTime": ["35F9.1"]]
+        var actual: [String: [String]] = [:]
+        for declaration in declarations {
+            let category = try XCTUnwrap(declaration["NSPrivacyAccessedAPIType"] as? String)
+            XCTAssertNil(actual[category], "Duplicate API category")
+            actual[category] = try XCTUnwrap(declaration["NSPrivacyAccessedAPITypeReasons"] as? [String])
+        }
+        XCTAssertEqual(actual, expected)
+    }
+
     func testLiveMacAndRepeatedReads() throws {
         let reader = StorageReader()
         let initial = reader.read(rediscover: true)
