@@ -51,7 +51,7 @@ Full Xcode is not required to build the application. It may be required for the 
 Clone the repository and run the installer:
 
 ```bash
-git clone https://github.com/Ilcoach/FreeBar.git
+git clone https://github.com/alessandroviola-dev/FreeBar.git
 cd FreeBar
 ./install.sh
 ```
