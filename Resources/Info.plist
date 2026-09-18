@@ -8,6 +8,8 @@
     <string>FreeBar</string>
     <key>CFBundleDisplayName</key>
     <string>FreeBar</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleExecutable</key>
     <string>FreeBar</string>
     <key>CFBundlePackageType</key>

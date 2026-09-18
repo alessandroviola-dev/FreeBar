@@ -41,6 +41,7 @@ trap 'exit 143' TERM
 mkdir -p "$NEW/Contents/MacOS" "$NEW/Contents/Resources"
 cp "$ROOT/Resources/Info.plist" "$NEW/Contents/Info.plist"
 cp "$ROOT/Resources/PrivacyInfo.xcprivacy" "$NEW/Contents/Resources/PrivacyInfo.xcprivacy"
+cp "$ROOT/Resources/AppIcon.icns" "$NEW/Contents/Resources/AppIcon.icns"
 cp "$BIN/FreeBar" "$NEW/Contents/MacOS/FreeBar"
 chmod 755 "$NEW/Contents/MacOS/FreeBar"
 plutil -lint "$NEW/Contents/Info.plist" "$NEW/Contents/Resources/PrivacyInfo.xcprivacy" >/dev/null
