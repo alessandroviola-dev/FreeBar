@@ -1,0 +1,45 @@
+name: Release macOS artifact
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode and Swift versions
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Test
+        run: swift test
+      - name: Build signed app and distributable ZIP
+        run: ./scripts/build-release.sh
+      - name: Verify release metadata
+        run: |
+          plutil -lint dist/FreeBar.app/Contents/Info.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' dist/FreeBar.app/Contents/Info.plist)" = com.alessandroviola.freebar
+          codesign --verify --deep --strict dist/FreeBar.app
+          unzip -Z1 dist/FreeBar-v*-macOS.zip | grep -q '^FreeBar.app/Contents/MacOS/FreeBar$'
+      - name: Upload distributable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreeBar-macOS
+          path: dist/FreeBar-v*-macOS.zip
+          if-no-files-found: error
+      - name: Publish GitHub Release for matching version tag
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          test "$TAG" = "v$VERSION"
+          gh release create "$TAG" dist/FreeBar-v*-macOS.zip --generate-notes
