@@ -32,41 +32,35 @@ Mac 183G | T7 742G | USB 28G
 
 `Mac` always represents the main writable storage used by macOS. External drives use their mounted volume name and are shown in a deterministic order.
 
-## Requirements
+## Download
 
-- macOS 13 Ventura or later
-- Apple Silicon (arm64)
-- Swift 5.9+ and a macOS SDK when building from source
+Normal users should download the latest compiled `FreeBar-vX.Y.Z-macOS.zip` from [GitHub Releases](https://github.com/alessandroviola-dev/FreeBar/releases). The download is already a macOS application: Xcode, Swift, Homebrew, and Command Line Tools are **not** required to use it.
 
-Apple Command Line Tools are sufficient to build and install FreeBar:
+## Installation
+
+1. Download `FreeBar-vX.Y.Z-macOS.zip` from GitHub Releases.
+2. Extract it to obtain `FreeBar.app`.
+3. Drag `FreeBar.app` to `/Applications`.
+4. Open FreeBar.
+
+The current builds are ad-hoc signed and are not yet Developer ID notarized. If Gatekeeper blocks the first launch, control-click the app, choose **Open**, then confirm **Open**; alternatively approve it in **System Settings → Privacy & Security**. Do not disable Gatekeeper globally.
+
+## Build from source (developers)
+
+macOS 13 Ventura or later, Apple Silicon (arm64), Swift 5.9+, and a macOS SDK are required only to build from source. Command Line Tools are sufficient for the application build:
 
 ```bash
 xcode-select --install
-```
-
-Full Xcode is not required to build the application. It may be required for the XCTest suite on systems where the standalone Command Line Tools do not include XCTest.
-
-## Install
-
-Clone the repository and run the installer:
-
-```bash
 git clone https://github.com/alessandroviola-dev/FreeBar.git
 cd FreeBar
 ./install.sh
 ```
 
-FreeBar is installed to:
+`./install.sh` builds and installs `~/Applications/FreeBar.app` for local development. To create the release bundle and ZIP used by CI, run:
 
-```text
-~/Applications/FreeBar.app
+```bash
+./scripts/build-release.sh
 ```
-
-No `sudo` is required.
-
-Running `./install.sh` again safely rebuilds and replaces the installed copy. The previous app bundle is retained until the new build launches successfully, allowing the installer to roll back if replacement fails.
-
-The application is ad-hoc signed for local installation. It is not currently distributed as a notarized Developer ID binary, so installation is source-based for now.
 
 ## Uninstall
 
