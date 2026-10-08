@@ -56,7 +56,7 @@ cd FreeBar
 ./install.sh
 ```
 
-`./install.sh` builds and installs `~/Applications/FreeBar.app` for local development. To create the release bundle and ZIP used by CI, run:
+`./install.sh` builds and installs `/Applications/FreeBar.app` for local development. `/Applications` must be writable; there is no per-user fallback. Verified legacy copies in `~/Applications` are backed up and removed only after successful installation; failures restore both copies. Invalid or symlinked bundles are refused. After migration, check Launch at Login in the canonical app. To create the release bundle and ZIP used by CI, run:
 
 ```bash
 ./scripts/build-release.sh
@@ -73,7 +73,8 @@ From the cloned repository:
 The uninstaller stops FreeBar, unregisters Launch at Login, and removes only:
 
 ```text
-~/Applications/FreeBar.app
+/Applications/FreeBar.app
+~/Applications/FreeBar.app (legacy copy, if present)
 ```
 
 It does not delete the repository, user files, or unrelated preferences.

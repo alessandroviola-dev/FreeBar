@@ -9,6 +9,8 @@ xcode-select -p >/dev/null 2>&1 || fail 'Install Apple Command Line Tools: xcode
 xcrun --sdk macosx --show-sdk-path >/dev/null || fail 'A macOS SDK is required.'
 xcrun --find codesign >/dev/null || fail 'codesign is required.'
 check_existing_app
+check_existing_app "$LEGACY_APP"
+[[ -d /Applications && -w /Applications ]] || fail '/Applications must be writable; no per-user fallback is permitted.'
 
 printf 'Building FreeBar (release, arm64)…\n'
 cd "$ROOT"
@@ -16,20 +18,28 @@ swift build -c release --arch arm64
 BIN=$(swift build -c release --arch arm64 --show-bin-path)
 [[ -x "$BIN/FreeBar" ]] || fail 'Build did not produce the FreeBar executable.'
 
-mkdir -p "$HOME/Applications"
-STAGE=$(mktemp -d "$HOME/Applications/.FreeBar-install.XXXXXX")
+STAGE=$(mktemp -d "/Applications/.FreeBar-install.XXXXXX")
 BACKUP="$STAGE/previous.app"
+LEGACY_BACKUP="$STAGE/legacy.app"
+LEGACY_MOVED=0
 NEW="$STAGE/FreeBar.app"
 REPLACED=0
 COMMITTED=0
 cleanup() {
     local result=$?
-    if [[ $COMMITTED == 0 && $REPLACED == 1 ]]; then
-        stop_installed_app
-        rm -rf -- "$APP"
-        if [[ -d "$BACKUP" ]]; then
-            mv -- "$BACKUP" "$APP"
-            /usr/bin/open "$APP" || true
+    trap - EXIT INT TERM
+    if [[ $COMMITTED == 0 ]]; then
+        if [[ $REPLACED == 1 ]]; then
+            stop_installed_app
+            rm -rf -- "$APP" || { printf 'Recovery files retained: %s\n' "$STAGE" >&2; exit 1; }
+            if [[ -d "$BACKUP" ]]; then
+                mv -- "$BACKUP" "$APP" || { printf 'Recovery files retained: %s\n' "$STAGE" >&2; exit 1; }
+                /usr/bin/open "$APP" || true
+            fi
+        fi
+        if [[ $LEGACY_MOVED == 1 ]]; then
+            mv -- "$LEGACY_BACKUP" "$LEGACY_APP" || { printf 'Recovery files retained: %s\n' "$STAGE" >&2; exit 1; }
+            /usr/bin/open "$LEGACY_APP" || true
         fi
     fi
     rm -rf -- "$STAGE"
@@ -49,9 +59,18 @@ plutil -lint "$NEW/Contents/Info.plist" "$NEW/Contents/Resources/PrivacyInfo.xcp
 # This is ad-hoc signing, not Developer ID signing or notarization.
 codesign --force --sign - --identifier "$BUNDLE_ID" \
     --requirements "=designated => identifier \"$BUNDLE_ID\"" "$NEW"
-codesign --verify --strict "$NEW"
+codesign --verify --deep --strict "$NEW"
+check_existing_app "$NEW"
 
+# Revalidate immediately before modifying either installation.
+check_existing_app
+check_existing_app "$LEGACY_APP"
 stop_installed_app
+stop_installed_app "$LEGACY_APP"
+if [[ -e "$LEGACY_APP" ]]; then
+    mv -- "$LEGACY_APP" "$LEGACY_BACKUP"
+    LEGACY_MOVED=1
+fi
 # Both renames occur on the same filesystem; keep the old bundle until launch succeeds.
 if [[ -e "$APP" ]]; then mv -- "$APP" "$BACKUP"; fi
 REPLACED=1
