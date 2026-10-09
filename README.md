@@ -34,11 +34,11 @@ Mac 183G | T7 742G | USB 28G
 
 ## Download
 
-Normal users should download the latest compiled `FreeBar-vX.Y.Z-macOS.zip` from [GitHub Releases](https://github.com/alessandroviola-dev/FreeBar/releases). The download is already a macOS application: Xcode, Swift, Homebrew, and Command Line Tools are **not** required to use it.
+Normal users should download the compiled `FreeBar-v0.1.0-macOS.zip` from [GitHub Releases](https://github.com/alessandroviola-dev/FreeBar/releases). The ZIP contains the ready-to-use macOS application; Xcode, Swift, Homebrew, and Command Line Tools are **not** required.
 
 ## Installation
 
-1. Download `FreeBar-vX.Y.Z-macOS.zip` from GitHub Releases.
+1. Download `FreeBar-v0.1.0-macOS.zip` from GitHub Releases.
 2. Extract it to obtain `FreeBar.app`.
 3. Drag `FreeBar.app` to `/Applications`.
 4. Open FreeBar.
@@ -217,7 +217,7 @@ FreeBar/
 - Only normally mounted local physical storage is considered.
 - Missing or insufficient hardware identity is deliberately treated conservatively rather than risking false positives.
 - macOS ultimately controls available menu bar width, so many simultaneously connected volumes may exceed available space.
-- The current public distribution method builds the app locally from source; there is not yet a notarized downloadable release binary.
+- The public distribution method is the downloadable `FreeBar-v0.1.0-macOS.zip` from GitHub Releases. It is ad-hoc signed and is not Apple Developer ID notarized; source builds are intended for development.
 
 ## Contributing
 
