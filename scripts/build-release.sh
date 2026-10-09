@@ -26,7 +26,8 @@ build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")
 
 cd "$ROOT"
 # Do not serialize the builder's absolute source path into the shipped executable.
-swift build -c release --arch arm64 -Xswiftc -debug-prefix-map -Xswiftc "$ROOT=/Source"
+swift build -c release --arch arm64 -Xswiftc -debug-prefix-map -Xswiftc "$ROOT=/Source" \
+    -Xswiftc -file-prefix-map -Xswiftc "$ROOT=/Source"
 bin_path=$(swift build -c release --arch arm64 --show-bin-path)
 executable="$bin_path/$APP_NAME"
 [[ -x "$executable" ]] || fail "Release executable was not produced: $executable"
@@ -40,6 +41,9 @@ cp "$ROOT/Resources/PrivacyInfo.xcprivacy" "$app/Contents/Resources/PrivacyInfo.
 cp "$ROOT/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 cp "$executable" "$app/Contents/MacOS/$APP_NAME"
 chmod 755 "$app/Contents/MacOS/$APP_NAME"
+# Linker debug symbols can retain absolute object/module paths despite prefix mapping.
+# Remove debug-only symbols from the distributed copy, before signing it.
+/usr/bin/strip -S "$app/Contents/MacOS/$APP_NAME"
 
 plutil -lint "$app/Contents/Info.plist" "$app/Contents/Resources/PrivacyInfo.xcprivacy" >/dev/null
 [[ $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist") == "$BUNDLE_ID" ]] || fail "Unexpected bundle identifier."
@@ -60,12 +64,13 @@ rm -rf "$OUTPUT_DIR/$APP_NAME.app"
 cp -R "$app" "$OUTPUT_DIR/$APP_NAME.app"
 zip="$OUTPUT_DIR/$APP_NAME-v$version-macOS.zip"
 rm -f "$zip"
-ditto -c -k --sequesterRsrc --keepParent "$OUTPUT_DIR/$APP_NAME.app" "$zip"
+# Do not ship AppleDouble/resource forks, local extended attributes or quarantine.
+ditto -c -k --norsrc --noextattr --noqtn --keepParent "$OUTPUT_DIR/$APP_NAME.app" "$zip"
 if [[ -n "$NOTARY_PROFILE" ]]; then
     xcrun notarytool submit "$zip" --keychain-profile "$NOTARY_PROFILE" --wait
     xcrun stapler staple "$OUTPUT_DIR/$APP_NAME.app"
     rm -f "$zip"
-    ditto -c -k --sequesterRsrc --keepParent "$OUTPUT_DIR/$APP_NAME.app" "$zip"
+    ditto -c -k --norsrc --noextattr --noqtn --keepParent "$OUTPUT_DIR/$APP_NAME.app" "$zip"
 fi
 entries=$(unzip -Z1 "$zip")
 if printf '%s\n' "$entries" | grep -Ev "^${APP_NAME}\.app(/|$)" >/dev/null; then
@@ -73,6 +78,9 @@ if printf '%s\n' "$entries" | grep -Ev "^${APP_NAME}\.app(/|$)" >/dev/null; then
 fi
 if printf '%s\n' "$entries" | grep -E '(^|/)(\.build|DerivedData|\.env|.*\.(pem|p12|cer|key)|.*\.log)(/|$)' >/dev/null; then
     fail "ZIP contains excluded local or credential material."
+fi
+if unzip -p "$zip" | grep -a -E '/Users/|/home/' >/dev/null; then
+    fail "ZIP contains an absolute personal path."
 fi
 local_home="${HOME:-}"
 if [[ -n "$local_home" ]] && unzip -p "$zip" | grep -a -F "$local_home" >/dev/null; then

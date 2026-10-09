@@ -1,4 +1,19 @@
-# Verification — FreeBar 0.1.0
+# Verification — FreeBar
+
+## Local package preparation — 0.1.1, build 2
+
+Not published; no tag, release, installation or login-item change was performed.
+
+- `swift test`: 10 tests passed; installer sandbox: 15 scenarios passed.
+- Release arm64 build, plist/bundle ID, privacy manifest and strict codesign passed.
+- ZIP whitelist, integrity, executable permissions, macOS extraction and extracted signature passed. Packaged files match the staged bundle.
+- The archive contains only the application, with no sources, logs, credentials, personal absolute paths, AppleDouble/resource forks or extended attributes. Debug-only linker symbols are removed before ad-hoc signing; source/debug paths are remapped.
+- The first packaging attempts were rejected for macOS archive metadata and absolute debug-symbol paths. Their ignored outputs were preserved; only the final validated package is eligible for publication.
+- Source version, packaged version and archive name agree on 0.1.1, build 2. The existing installed app and preferences remain unchanged.
+- The binary remains ad-hoc signed, not Apple notarized. Prefix-mapped debug-module lookup warnings occurred during linking; the build and packaged-binary checks passed. No new GUI, login/reboot or hardware qualification is claimed.
+- Installer fixes apply to the source scripts; those scripts are not included in the binary ZIP. Existing v0.1.0 release assets remain unchanged.
+
+## Historical verification — FreeBar 0.1.0
 
 Executed on 2026-09-06, macOS 26.5, Apple Silicon arm64. No external physical drive was attached. The installed app was left running with Launch at Login **off** after testing.
 

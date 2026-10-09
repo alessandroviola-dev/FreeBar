@@ -34,7 +34,9 @@ Mac 183G | T7 742G | USB 28G
 
 ## Download
 
-Normal users should download the compiled `FreeBar-v0.1.0-macOS.zip` from [GitHub Releases](https://github.com/alessandroviola-dev/FreeBar/releases). The ZIP contains the ready-to-use macOS application; Xcode, Swift, Homebrew, and Command Line Tools are **not** required.
+The currently published binary is `FreeBar-v0.1.0-macOS.zip` on [GitHub Releases](https://github.com/alessandroviola-dev/FreeBar/releases). The ZIP contains the ready-to-use macOS application; Xcode, Swift, Homebrew, and Command Line Tools are **not** required.
+
+The checked-out source prepares **0.1.1, build 2**, with the canonical installer and rollback fixes. Its locally built package is `FreeBar-v0.1.1-macOS.zip`; it is not yet published. Preparing this package does not change the existing v0.1.0 release. The ZIP contains the app only, not the developer installer scripts.
 
 ## Installation
 
